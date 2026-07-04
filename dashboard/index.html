@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brandywine Price Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">BW</span>
+      <div class="brand-text">
+        <div class="brand-name">Brandywine</div>
+        <div class="brand-sub">Price Tracker</div>
+      </div>
+    </div>
+    <div class="last-updated">
+      <span class="dot dot-live" id="live-dot"></span>
+      <span id="last-updated-label">Loading last update…</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="filter-bar" aria-label="Filters">
+    <div class="filter-group" id="category-filters">
+      <button class="chip chip-active" data-category="all">All</button>
+      <!-- category chips injected here -->
+    </div>
+    <div class="search-group">
+      <input type="search" id="search-input" placeholder="Search chemicals…" aria-label="Search chemicals" />
+      <select id="sort-select" aria-label="Sort by">
+        <option value="name">Sort: Name</option>
+        <option value="change">Sort: % Change</option>
+        <option value="price">Sort: Price</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="card-grid" id="card-grid" aria-label="Tracked chemicals">
+    <!-- chemical cards injected here -->
+    <p class="empty-state" id="empty-state" hidden>No chemicals match your filters.</p>
+  </section>
+
+  <section class="alert-history" aria-label="Alert history">
+    <h2>Recent Alerts</h2>
+    <div class="table-wrap">
+      <table id="alert-table">
+        <thead>
+          <tr><th>Chemical</th><th>Change</th><th>Direction</th><th>When</th></tr>
+        </thead>
+        <tbody id="alert-table-body">
+          <tr><td colspan="4" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Detail modal: shown when a card is clicked -->
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+    <h2 id="modal-title">Chemical</h2>
+    <p class="modal-meta" id="modal-meta"></p>
+    <canvas id="modal-chart" height="220"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
