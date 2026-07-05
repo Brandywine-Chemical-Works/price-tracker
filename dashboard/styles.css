@@ -138,6 +138,7 @@ body {
 .chem-change-neg { color: var(--status-red); font-weight: 600; }
 
 .empty-state { color: var(--ink-muted); grid-column: 1 / -1; text-align: center; padding: 40px 0; }
+.error-state { color: var(--status-red); }
 
 /* ---------- Alert history ---------- */
 .alert-history { margin-top: 36px; }

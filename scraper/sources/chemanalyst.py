@@ -1,20 +1,10 @@
 """
 ChemAnalyst price page scraper (static HTML + BeautifulSoup).
 
-IMPORTANT: ChemAnalyst's page markup changes over time, and its price pages
-for individual chemicals require checking their current URL pattern and
-robots.txt before pointing this at production. This module is written so
-the *pipeline* (fetch -> parse -> normalize -> hand to db.py) is complete
-and correct; the CSS selectors in `_parse_price_table` are the one piece
-you should verify/adjust against the live page before relying on it,
-since selectors are exactly the kind of thing that breaks silently.
-
-Steps before running against the real site:
-  1. curl https://www.chemanalyst.com/robots.txt  and confirm the target
-     path isn't disallowed.
-  2. View source on the live product price page and confirm the table/row
-     structure below still matches.
+Fetches regional price cards from ChemAnalyst product pages and prefers the
+USA spot price (USD/MT), falling back to the first USD/MT value on the page.
 """
+import re
 import time
 from datetime import date
 from typing import Optional
@@ -31,13 +21,23 @@ log = get_logger(__name__)
 
 _ua = UserAgent()
 
-# One entry per chemical this source covers. Update URLs to the real,
-# current ChemAnalyst product page for each chemical.
+# Verified live ChemAnalyst pricing pages (each is an independent price source).
 CHEMANALYST_TARGETS = {
     "Methanol": "https://www.chemanalyst.com/Pricing-data/methanol-1",
-    "Acetone": "https://www.chemanalyst.com/Pricing-data/acetone-2",
-    "Sulfuric Acid": "https://www.chemanalyst.com/Pricing-data/sulphuric-acid-64",
+    "Formaldehyde": "https://www.chemanalyst.com/Pricing-data/formaldehyde-1214",
+    "Biodiesel": "https://www.chemanalyst.com/Pricing-data/biodiesel-77",
+    "Natural Gas": "https://www.chemanalyst.com/Pricing-data/natural-gas-1339",
+    "Palm Oil": "https://www.chemanalyst.com/Pricing-data/palm-oil-1319",
+    "MTBE": "https://www.chemanalyst.com/Pricing-data/methyl-tertiary-butyl-ether-81",
+    "Used Cooking Oil": "https://www.chemanalyst.com/Pricing-data/used-cooking-oil-uco-2322",
+    "Coal": "https://www.chemanalyst.com/Pricing-data/coal-1522",
 }
+
+_USA_PRICE_RE = re.compile(
+    r"(?:in|for)\s+USA[^.]{0,60}?USD\s*([\d,]+\.?\d*)\s*/\s*MT",
+    re.IGNORECASE,
+)
+_ANY_PRICE_RE = re.compile(r"USD\s*([\d,]+\.?\d*)\s*/\s*MT", re.IGNORECASE)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -45,34 +45,30 @@ def _fetch_html(url: str) -> str:
     headers = {"User-Agent": _ua.random}
     resp = requests.get(url, headers=headers, timeout=config.REQUEST_TIMEOUT_SECONDS)
     resp.raise_for_status()
+    if "/Pricing-data/" not in resp.url:
+        raise ValueError(f"ChemAnalyst redirected away from pricing page: {resp.url}")
     return resp.text
 
 
 def _parse_price_table(html: str) -> Optional[dict]:
-    """
-    Parse the price + unit out of the page. Adjust the selectors below to
-    match ChemAnalyst's current markup — verify with your browser's
-    'Inspect Element' on the live price page.
-    """
-    soup = BeautifulSoup(html, "html.parser")
+    """Extract USA USD/MT price from ChemAnalyst regional price cards."""
+    text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
 
-    # Common pattern on price-tracking sites: a prominent price element
-    # with a class like "price-value" or inside a summary card. Update this
-    # selector after inspecting the live page.
-    price_el = soup.select_one(".price-value, .current-price, [data-price]")
-    unit_el = soup.select_one(".price-unit, .unit")
-
-    if price_el is None:
+    match = _USA_PRICE_RE.search(text)
+    if match is None:
+        match = _ANY_PRICE_RE.search(text)
+    if match is None:
         return None
 
-    price_text = price_el.get_text(strip=True).replace(",", "").replace("$", "")
     try:
-        price = float("".join(ch for ch in price_text if ch.isdigit() or ch == "."))
+        price = float(match.group(1).replace(",", ""))
     except ValueError:
         return None
 
-    unit = unit_el.get_text(strip=True) if unit_el else "USD/MT"
-    return {"price": price, "unit": unit}
+    if price <= 0:
+        return None
+
+    return {"price": price, "unit": "USD/MT"}
 
 
 def fetch_price(chemical_name: str, url: str) -> Optional[dict]:
@@ -85,7 +81,7 @@ def fetch_price(chemical_name: str, url: str) -> Optional[dict]:
     parsed = _parse_price_table(html)
     if parsed is None:
         log.warning(
-            "chemanalyst_parse_failed_check_selectors",
+            "chemanalyst_parse_failed",
             extra={"chemical_name": chemical_name, "url": url},
         )
         return None
@@ -102,15 +98,16 @@ def fetch_price(chemical_name: str, url: str) -> Optional[dict]:
 
 
 def fetch_all(chemical_names: Optional[list[str]] = None) -> list[dict]:
-    """Fetch every chemical in CHEMANALYST_TARGETS (or a filtered subset)."""
-    results = []
+    """Fetch configured ChemAnalyst targets, optionally filtered by name."""
     targets = CHEMANALYST_TARGETS
-    if chemical_names:
-        targets = {k: v for k, v in targets.items() if k in chemical_names}
+    if chemical_names is not None:
+        allowed = set(chemical_names)
+        targets = {k: v for k, v in targets.items() if k in allowed}
 
+    results = []
     for chemical_name, url in targets.items():
         record = fetch_price(chemical_name, url)
         if record:
             results.append(record)
-        time.sleep(config.REQUEST_DELAY_SECONDS)  # politeness delay
+        time.sleep(config.REQUEST_DELAY_SECONDS)
     return results

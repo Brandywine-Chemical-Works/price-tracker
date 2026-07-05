@@ -42,13 +42,36 @@ create table if not exists price_alerts (
     triggered_at timestamptz not null default now()
 );
 
--- Seed a few chemicals to get started. Radek/finance intern expand this list.
+-- 18 tracked chemicals across ChemAnalyst (8) + World Bank (10) = 18 price sources.
 insert into chemicals_config (chemical_name, category, sources, alert_threshold_pct)
 values
-    ('Methanol', 'solvent', '{"chemanalyst","worldbank"}', 5.0),
-    ('Acetone', 'solvent', '{"chemanalyst"}', 5.0),
-    ('Sulfuric Acid', 'industrial', '{"chemanalyst"}', 5.0)
-on conflict (chemical_name) do nothing;
+    ('Methanol',           'solvent',    '{"chemanalyst"}', 5.0),
+    ('Formaldehyde',       'industrial', '{"chemanalyst"}', 5.0),
+    ('Biodiesel',          'fuel',       '{"chemanalyst"}', 5.0),
+    ('Natural Gas',        'feedstock',  '{"chemanalyst"}', 5.0),
+    ('Palm Oil',           'feedstock',  '{"chemanalyst"}', 5.0),
+    ('MTBE',               'solvent',    '{"chemanalyst"}', 5.0),
+    ('Used Cooking Oil',   'feedstock',  '{"chemanalyst"}', 5.0),
+    ('Coal',               'feedstock',  '{"chemanalyst"}', 5.0),
+    ('Urea',               'fertilizer', '{"worldbank"}',   5.0),
+    ('DAP',                'fertilizer', '{"worldbank"}',   5.0),
+    ('Ammonia',            'industrial', '{"worldbank"}',   5.0),
+    ('Phosphate Rock',     'industrial', '{"worldbank"}',   5.0),
+    ('Potassium Chloride', 'fertilizer', '{"worldbank"}',   5.0),
+    ('Brent Crude Oil',    'feedstock',  '{"worldbank"}',   5.0),
+    ('Rubber',             'industrial', '{"worldbank"}',   5.0),
+    ('Aluminum',           'metal',      '{"worldbank"}',   5.0),
+    ('Soda Ash',           'industrial', '{"worldbank"}',   5.0),
+    ('Sulfur',             'industrial', '{"worldbank"}',   5.0)
+on conflict (chemical_name) do update set
+    category = excluded.category,
+    sources = excluded.sources,
+    is_active = true;
+
+-- Retire chemicals whose ChemAnalyst URLs were invalid / removed.
+update chemicals_config
+set is_active = false
+where chemical_name in ('Acetone', 'Sulfuric Acid');
 
 -- Row Level Security: enable once auth is wired up in Week 5+.
 -- For now these tables are read via the service-role key from the backend

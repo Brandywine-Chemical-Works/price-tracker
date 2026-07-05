@@ -19,14 +19,19 @@ PRICE_ALERT_THRESHOLD_PCT = float(os.environ.get("PRICE_ALERT_THRESHOLD_PCT", "5
 REQUEST_TIMEOUT_SECONDS = 15
 REQUEST_DELAY_SECONDS = 2.0  # politeness delay between scrape requests
 
-# World Bank "Pink Sheet" commodity indicator codes used by worldbank.py.
-# Add more here as the finance intern's chemical list grows.
+# World Bank Pink Sheet commodity indicators (free JSON API, no key required).
+# Each entry is one tracked chemical/commodity price source.
 WORLD_BANK_INDICATORS = {
-    # World Bank doesn't track methanol directly; DAP (fertilizer) is used
-    # here as a placeholder proxy so the pipeline is demonstrably working
-    # end-to-end. Swap in real indicator codes as you find them (see
-    # docs/SETUP.md for how to search the World Bank API catalog).
-    "DAP (fertilizer, proxy)": "PFERT_WLD",
+    "Urea": {"code": "PUERA", "unit": "USD/MT"},
+    "DAP": {"code": "PDAP", "unit": "USD/MT"},
+    "Ammonia": {"code": "PAMMO", "unit": "USD/MT"},
+    "Phosphate Rock": {"code": "PPHOS", "unit": "USD/MT"},
+    "Potassium Chloride": {"code": "PKCL", "unit": "USD/MT"},
+    "Brent Crude Oil": {"code": "POILBRE", "unit": "USD/bbl"},
+    "Rubber": {"code": "PRUBB", "unit": "USD/MT"},
+    "Aluminum": {"code": "PALUM", "unit": "USD/MT"},
+    "Soda Ash": {"code": "PSODA", "unit": "USD/MT"},
+    "Sulfur": {"code": "PSULF", "unit": "USD/MT"},
 }
 
 

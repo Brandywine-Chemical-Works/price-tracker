@@ -8,7 +8,7 @@
 const SUPABASE_URL = "https://yxvtmgylbxknqrucriyl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4dnRtZ3lsYnhrbnFydWNyaXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODY2MTcsImV4cCI6MjA5ODc2MjYxN30.1LMBbu1q3hKMC5DblmlaVIyCZA3smyCx4eGmVcj5tZ4";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let allChemicals = [];      // [{ name, category, price, unit, date, source, change, status }]
 let activeCategory = "all";
@@ -16,7 +16,24 @@ let searchTerm = "";
 let sortBy = "name";
 let chartInstance = null;
 
+function showError(message) {
+  const el = document.getElementById("error-state");
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function clearError() {
+  const el = document.getElementById("error-state");
+  el.textContent = "";
+  el.hidden = true;
+}
+
 async function init() {
+  clearError();
+  if (!window.supabase) {
+    showError("Dashboard failed to load: Supabase client library did not load.");
+    return;
+  }
   await Promise.all([loadChemicals(), loadAlertHistory()]);
   document.getElementById("last-updated-label").textContent =
     `Updated ${new Date().toLocaleString()}`;
@@ -30,6 +47,12 @@ async function loadChemicals() {
 
   if (configErr) {
     console.error("Failed to load chemicals_config", configErr);
+    showError(`Could not load chemical list: ${configErr.message}`);
+    return;
+  }
+
+  if (!configRows || configRows.length === 0) {
+    showError("No chemicals configured yet. Run supabase/schema.sql in your Supabase project.");
     return;
   }
 
@@ -76,6 +99,13 @@ async function loadChemicals() {
   allChemicals = results;
   renderCategoryChips();
   renderCards();
+
+  if (results.length === 0) {
+    showError(
+      `${configRows.length} chemicals configured but no price data yet. ` +
+      "Trigger the Chemical Price Scraper workflow in GitHub Actions."
+    );
+  }
 }
 
 async function loadAlertHistory() {
