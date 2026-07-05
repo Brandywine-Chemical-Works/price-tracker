@@ -5,12 +5,8 @@
  * No backend of its own — pure static HTML/JS, deployable to GitHub Pages.
  */
 
-// ---- CONFIG: fill these in with your project's values ----
-// Project Settings > API in the Supabase dashboard.
-// The anon key is safe to expose in client-side code; RLS policies restrict
-// it to read-only access. NEVER put the service_role key here.
-const SUPABASE_URL = "https://your-project-ref.supabase.co";
-const SUPABASE_ANON_KEY = "your-anon-public-key";
+const SUPABASE_URL = "https://yxvtmgylbxknqrucriyl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4dnRtZ3lsYnhrbnFydWNyaXlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODY2MTcsImV4cCI6MjA5ODc2MjYxN30.1LMBbu1q3hKMC5DblmlaVIyCZA3smyCx4eGmVcj5tZ4";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

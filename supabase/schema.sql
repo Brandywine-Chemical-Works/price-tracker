@@ -27,7 +27,7 @@ create table if not exists chemical_prices (
     unique (chemical_name, date_recorded, source)   -- idempotency / dedup key
 );
 
-create index if not exists idx_chemical_prices_name_date
+create index if not exists idx_chemical_prices_name_date    
     on chemical_prices (chemical_name, date_recorded desc);
 
 -- Log of every alert email sent, for the CRM integration (Week 7) and
